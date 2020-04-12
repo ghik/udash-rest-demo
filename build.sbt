@@ -32,6 +32,7 @@ val scalatestVersion = "3.1.1"
 val scalajsDomVersion = "1.0.0"
 val udashVersion = "0.8.3"
 val jettyVersion = "9.4.28.v20200408"
+val scalatagsVersion = "0.8.6"
 
 val commonSettings = Seq(
   scalaVersion := "2.12.11",
@@ -72,6 +73,9 @@ val coreJvmDeps = Seq(
   "org.eclipse.jetty" % "jetty-server" % jettyVersion,
   "org.eclipse.jetty" % "jetty-servlet" % jettyVersion,
 )
+val coreJsDeps = Def.setting(Seq(
+  "com.lihaoyi" %%% "scalatags" % scalatagsVersion,
+))
 
 // root project which has no sources and only aggregates other modules
 // "aggregating" means that when you run some SBT task for root project, it is being run for all aggregated projects
@@ -122,6 +126,7 @@ lazy val `core-js` = project.in(core.base / "js")
     sameNameAs(core),
     sourceDirsSettings(_.getParentFile), // adding cross-compiled sources from the `core` project
     libraryDependencies ++= coreCrossDeps.value,
+    libraryDependencies ++= coreJsDeps.value,
     // causes the Scala.js linker to detect JVM-style "main" class and put the main method invocation in the JS file
     scalaJSUseMainModuleInitializer := true
   )

@@ -4,6 +4,7 @@ import com.softwaremill.sttp.SttpBackend
 import io.udash.rest.{DefaultSttpBackend, SttpRestClient}
 import org.scalajs.dom.html.Div
 import org.scalajs.dom.{document, window}
+import scalatags.JsDom.all._
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -14,10 +15,21 @@ object ClientMain {
     implicit val sttpBackend: SttpBackend[Future, Nothing] = DefaultSttpBackend()
     val demoApi: DemoApi = SttpRestClient[DemoApi](s"${window.location.origin}/api")
 
-    val ui = document.getElementById("ui").asInstanceOf[Div]
+    val textInput =
+      input(`type` := "text").render
 
-    demoApi.upperEcho("dafuq").foreach { upper =>
-      ui.appendChild(document.createTextNode(upper))
-    }
+    val button = input(
+      `type` := "button",
+      value := "Convert to uppercase using REST",
+      onclick := { () =>
+        demoApi.upperEcho(textInput.value).foreach { upper =>
+          textInput.value = upper
+        }
+      }
+    )
+
+    val ui = div(textInput, button)
+
+    document.body.appendChild(ui.render)
   }
 }
