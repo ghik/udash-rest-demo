@@ -6,8 +6,8 @@
 *.iws
 *.ipr
 
-target
-out
+target/
+out/
 
 *.sjsir
 *.class

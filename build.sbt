@@ -72,9 +72,6 @@ val coreJvmDeps = Seq(
   "org.eclipse.jetty" % "jetty-server" % jettyVersion,
   "org.eclipse.jetty" % "jetty-servlet" % jettyVersion,
 )
-val coreJsDeps = Def.setting(Seq(
-  "org.scala-js" %%% "scalajs-dom" % scalajsDomVersion,
-))
 
 // root project which has no sources and only aggregates other modules
 // "aggregating" means that when you run some SBT task for root project, it is being run for all aggregated projects
@@ -97,7 +94,24 @@ lazy val core = project
     commonSettings,
     sourceDirsSettings(_ / "jvm"), // adding JVM-only sources
     libraryDependencies ++= coreCrossDeps.value,
-    libraryDependencies ++= coreJvmDeps
+    libraryDependencies ++= coreJvmDeps,
+
+    // setup the build so that the Scala.js generated files become server classpath resources
+    (Compile / resourceGenerators) += Def.task {
+      def jsSourceMap(jsFile: File): File =
+        jsFile.getParentFile / (jsFile.getName + ".map")
+
+      val sourceFile = (LocalProject("core-js") / Compile / fullOptJS).value.data
+      val targetFile = (Compile / resourceManaged).value / sourceFile.getName
+      IO.copyFile(sourceFile, targetFile)
+      IO.copyFile(jsSourceMap(sourceFile), jsSourceMap(targetFile))
+
+      val sourceDepsFile = (LocalProject("core-js") / Compile / packageMinifiedJSDependencies).value
+      val targetDepsFile = (Compile / resourceManaged).value / sourceDepsFile.getName
+      IO.copyFile(sourceDepsFile, targetDepsFile)
+
+      Seq(targetFile, jsSourceMap(targetFile), targetDepsFile)
+    }
   )
 
 lazy val `core-js` = project.in(core.base / "js")
@@ -108,5 +122,6 @@ lazy val `core-js` = project.in(core.base / "js")
     sameNameAs(core),
     sourceDirsSettings(_.getParentFile), // adding cross-compiled sources from the `core` project
     libraryDependencies ++= coreCrossDeps.value,
-    libraryDependencies ++= coreJsDeps.value
+    // causes the Scala.js linker to detect JVM-style "main" class and put the main method invocation in the JS file
+    scalaJSUseMainModuleInitializer := true
   )
